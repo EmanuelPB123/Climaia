@@ -1,71 +1,566 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Comparador de Imágenes en Tiempo Real</title>
-    <link rel="stylesheet" href="styles.css">
+<html><head><base href="http://localhost"><meta charset="UTF-8">
+<title>Comparador de Im&#xe1;genes en Tiempo Real</title>
+<style>
+  body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background: #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .container {
+    display: flex;
+    gap: 20px;
+    margin: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .video-container, .image-container {
+    position: relative;
+    width: 300px;
+    height: 225px;
+    border: 3px solid #333;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    transition: border-color 0.3s;
+  }
+
+  .video-container.active, .image-container.active {
+    border-color: #4CAF50;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+  }
+
+  .image-label {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    z-index: 1;
+  }
+
+  video, .baseImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .controls {
+    margin: 20px;
+    padding: 20px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+
+  button {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 5px;
+    background: #2196F3;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  button:hover {
+    background: #1976D2;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  .similarity {
+    font-size: 18px;
+    margin: 10px;
+    padding: 12px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+    min-width: 200px;
+    text-align: center;
+  }
+
+  .similarity.high {
+    background: #E8F5E9;
+    border-left: 4px solid #4CAF50;
+  }
+
+  .similarities-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    margin: 20px 0;
+  }
+
+  #cameraSelect {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  .total-similarity {
+    font-size: 28px;
+    font-weight: bold;
+    color: #1565C0;
+    margin: 20px;
+    padding: 20px;
+    background: #E3F2FD;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: all 0.3s;
+    min-width: 300px;
+  }
+
+  .total-similarity.high {
+    background: #E8F5E9;
+    color: #2E7D32;
+  }
+
+  .group-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin: 20px;
+    width: 100%;
+  }
+
+  .group-title {
+    font-size: 24px;
+    color: #1565C0;
+    text-align: center;
+    margin: 10px 0;
+  }
+
+  .group-total-similarity {
+    font-size: 24px;
+    font-weight: bold;
+    color: #1565C0;
+    margin: 10px;
+    padding: 15px;
+    background: #E3F2FD;
+    border-radius: 10px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+    text-align: center;
+    min-width: 250px;
+  }
+
+  .group-total-similarity.high {
+    background: #E8F5E9;
+    color: #2E7D32;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  .analyzing {
+    animation: pulse 1s infinite;
+  }
+
+  /* New styles added from the plan */
+  .camera-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .load-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .group-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f8f8f8;
+  }
+
+  .group-buttons-title {
+    font-weight: bold;
+    color: #1565C0;
+    margin-bottom: 5px;
+  }
+</style>
 </head>
 <body>
-    <h1>Comparador de Imágenes en Tiempo Real</h1>
-    <div class="group-container">
-        <div id="group1">
-            <h2 class="group-title">Grupo 1</h2>
-            <div class="similarities-container">
-                <div class="similarity" id="g1-similarity1">G1 - Similitud 1: --</div>
-                <div class="similarity" id="g1-similarity2">G1 - Similitud 2: --</div>
-                <div class="similarity" id="g1-similarity3">G1 - Similitud 3: --</div>
-                <div class="similarity" id="g1-similarity4">G1 - Similitud 4: --</div>
-                <div class="similarity" id="g1-similarity5">G1 - Similitud 5: --</div>
-            </div>
-            <div class="group-total-similarity" id="g1-totalSimilarity">
-                Similitud Total Grupo 1: --
-            </div>
+  <h1>Comparador de Im&#xe1;genes en Tiempo Real</h1>
+  <div class="group-container">
+    <div id="group1">
+      <h2 class="group-title">Grupo 1</h2>
+      <div class="container">
+        <div class="image-container" id="g1-container1">
+          <div class="image-label">G1 - Imagen 1</div>
+          <img class="baseImage" id="g1-baseImage1" src="/images (2).jpg" alt="G1 Imagen base 1" crossorigin="anonymous">
         </div>
-        
-        <div id="group2">
-            <h2 class="group-title">Grupo 2</h2>
-            <div class="similarities-container">
-                <div class="similarity" id="g2-similarity1">G2 - Similitud 1: --</div>
-                <div class="similarity" id="g2-similarity2">G2 - Similitud 2: --</div>
-                <div class="similarity" id="g2-similarity3">G2 - Similitud 3: --</div>
-                <div class="similarity" id="g2-similarity4">G2 - Similitud 4: --</div>
-                <div class="similarity" id="g2-similarity5">G2 - Similitud 5: --</div>
-            </div>
-            <div class="group-total-similarity" id="g2-totalSimilarity">
-                Similitud Total Grupo 2: --
-            </div>
+        <div class="image-container" id="g1-container2">
+          <div class="image-label">G1 - Imagen 2</div>
+          <img class="baseImage" id="g1-baseImage2" src="/descarga.jpg" alt="G1 Imagen base 2" crossorigin="anonymous">
         </div>
-
-        <div id="group3">
-            <h2 class="group-title">Grupo 3</h2>
-            <div class="similarities-container">
-                <div class="similarity" id="g3-similarity1">G3 - Similitud 1: --</div>
-                <div class="similarity" id="g3-similarity2">G3 - Similitud 2: --</div>
-                <div class="similarity" id="g3-similarity3">G3 - Similitud 3: --</div>
-                <div class="similarity" id="g3-similarity4">G3 - Similitud 4: --</div>
-                <div class="similarity" id="g3-similarity5">G3 - Similitud 5: --</div>
-            </div>
-            <div class="group-total-similarity" id="g3-totalSimilarity">
-                Similitud Total Grupo 3: --
-            </div>
+        <div class="image-container" id="g1-container3">
+          <div class="image-label">G1 - Imagen 3</div>
+          <img class="baseImage" id="g1-baseImage3" src="/images (1).jpg" alt="G1 Imagen base 3" crossorigin="anonymous">
         </div>
+        <div class="image-container" id="g1-container4">
+          <div class="image-label">G1 - Imagen 4</div>
+          <img class="baseImage" id="g1-baseImage4" src="/images.jpg" alt="G1 Imagen base 4" crossorigin="anonymous">
+        </div>
+        <div class="image-container" id="g1-container5">
+          <div class="image-label">G1 - Imagen 5</div>
+          <img class="baseImage" id="g1-baseImage5" src="/descarga (1).jpg" alt="G1 Imagen base 5" crossorigin="anonymous">
+        </div>
+      </div>
+      <div class="similarities-container">
+        <div class="similarity" id="g1-similarity1">G1 - Similitud 1: --</div>
+        <div class="similarity" id="g1-similarity2">G1 - Similitud 2: --</div>
+        <div class="similarity" id="g1-similarity3">G1 - Similitud 3: --</div>
+        <div class="similarity" id="g1-similarity4">G1 - Similitud 4: --</div>
+        <div class="similarity" id="g1-similarity5">G1 - Similitud 5: --</div>
+      </div>
+      <div class="group-total-similarity" id="g1-totalSimilarity">
+        Similitud Total Grupo 1: --
+      </div>
     </div>
-
-    <div class="video-container">
-        <div class="image-label">Cámara</div>
-        <video id="video" autoplay playsinline></video>
+    <div id="group2">
+      <h2 class="group-title">Grupo 2</h2>
+      <div class="container">
+        <div class="image-container" id="g2-container1">
+          <div class="image-label">G2 - Imagen 1</div>
+          <img class="baseImage" id="g2-baseImage1" src="/images (2).jpg" alt="G2 Imagen base 1" crossorigin="anonymous">
+        </div>
+        <div class="image-container" id="g2-container2">
+          <div class="image-label">G2 - Imagen 2</div>
+          <img class="baseImage" id="g2-baseImage2" src="/descarga.jpg" alt="G2 Imagen base 2" crossorigin="anonymous">
+        </div>
+        <div class="image-container" id="g2-container3">
+          <div class="image-label">G2 - Imagen 3</div>
+          <img class="baseImage" id="g2-baseImage3" src="/images (1).jpg" alt="G2 Imagen base 3" crossorigin="anonymous">
+        </div>
+        <div class="image-container" id="g2-container4">
+          <div class="image-label">G2 - Imagen 4</div>
+          <img class="baseImage" id="g2-baseImage4" src="/images.jpg" alt="G2 Imagen base 4" crossorigin="anonymous">
+        </div>
+        <div class="image-container" id="g2-container5">
+          <div class="image-label">G2 - Imagen 5</div>
+          <img class="baseImage" id="g2-baseImage5" src="/descarga (1).jpg" alt="G2 Imagen base 5" crossorigin="anonymous">
+        </div>
+      </div>
+      <div class="similarities-container">
+        <div class="similarity" id="g2-similarity1">G2 - Similitud 1: --</div>
+        <div class="similarity" id="g2-similarity2">G2 - Similitud 2: --</div>
+        <div class="similarity" id="g2-similarity3">G2 - Similitud 3: --</div>
+        <div class="similarity" id="g2-similarity4">G2 - Similitud 4: --</div>
+        <div class="similarity" id="g2-similarity5">G2 - Similitud 5: --</div>
+      </div>
+      <div class="group-total-similarity" id="g2-totalSimilarity">
+        Similitud Total Grupo 2: --
+      </div>
     </div>
-
-    <div class="controls">
-        <select id="cameraSelect">
-            <option value="">Seleccionar cámara...</option>
-        </select>
-        <button id="startCamera">Iniciar Cámara</button>
+    <div id="group3">
+      <h2 class="group-title">Grupo 3</h2>
+      <div class="container">
+        <div class="image-container" id="g3-container1">
+          <div class="image-label">G3 - Imagen 1</div>
+          <img class="baseImage" id="g3-baseImage1" src="/images (2).jpg" alt="G3 Imagen base 1" crossorigin="anonymous">
+        </div>
+        <div class="image-container" id="g3-container2">
+          <div class="image-label">G3 - Imagen 2</div>
+          <img class="baseImage" id="g3-baseImage2" src="/descarga.jpg" alt="G3 Imagen base 2" crossorigin="anonymous">
+        </div>
+        <div class="image-container" id="g3-container3">
+          <div class="image-label">G3 - Imagen 3</div>
+          <img class="baseImage" id="g3-baseImage3" src="/images (1).jpg" alt="G3 Imagen base 3" crossorigin="anonymous">
+        </div>
+        <div class="image-container" id="g3-container4">
+          <div class="image-label">G3 - Imagen 4</div>
+          <img class="baseImage" id="g3-baseImage4" src="/images.jpg" alt="G3 Imagen base 4" crossorigin="anonymous">
+        </div>
+        <div class="image-container" id="g3-container5">
+          <div class="image-label">G3 - Imagen 5</div>
+          <img class="baseImage" id="g3-baseImage5" src="/descarga (1).jpg" alt="G3 Imagen base 5" crossorigin="anonymous">
+        </div>
+      </div>
+      <div class="similarities-container">
+        <div class="similarity" id="g3-similarity1">G3 - Similitud 1: --</div>
+        <div class="similarity" id="g3-similarity2">G3 - Similitud 2: --</div>
+        <div class="similarity" id="g3-similarity3">G3 - Similitud 3: --</div>
+        <div class="similarity" id="g3-similarity4">G3 - Similitud 4: --</div>
+        <div class="similarity" id="g3-similarity5">G3 - Similitud 5: --</div>
+      </div>
+      <div class="group-total-similarity" id="g3-totalSimilarity">
+        Similitud Total Grupo 3: --
+      </div>
     </div>
+  </div>
+  <div class="video-container">
+    <div class="image-label">C&#xe1;mara</div>
+    <video id="video" autoplay playsinline></video>
+  </div>
+  <div class="controls">
+    <div class="camera-controls">
+      <select id="cameraSelect">
+        <option value>Seleccionar c&#xe1;mara...</option>
+      </select>
+      <button id="startCamera">Iniciar C&#xe1;mara</button>
+    </div>
+    
+    <div class="load-buttons">
+      <div class="group-buttons">
+        <div class="group-buttons-title">Grupo 1</div>
+        <button id="g1-loadImage1">G1 - Cargar Imagen 1</button>
+        <button id="g1-loadImage2">G1 - Cargar Imagen 2</button>
+        <button id="g1-loadImage3">G1 - Cargar Imagen 3</button>
+        <button id="g1-loadImage4">G1 - Cargar Imagen 4</button>
+        <button id="g1-loadImage5">G1 - Cargar Imagen 5</button>
+      </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
-    <script src="script.js"></script>
-</body>
-</html>
+      <div class="group-buttons">
+        <div class="group-buttons-title">Grupo 2</div>
+        <button id="g2-loadImage1">G2 - Cargar Imagen 1</button>
+        <button id="g2-loadImage2">G2 - Cargar Imagen 2</button>
+        <button id="g2-loadImage3">G2 - Cargar Imagen 3</button>
+        <button id="g2-loadImage4">G2 - Cargar Imagen 4</button>
+        <button id="g2-loadImage5">G2 - Cargar Imagen 5</button>
+      </div>
+
+      <div class="group-buttons">
+        <div class="group-buttons-title">Grupo 3</div>
+        <button id="g3-loadImage1">G3 - Cargar Imagen 1</button>
+        <button id="g3-loadImage2">G3 - Cargar Imagen 2</button>
+        <button id="g3-loadImage3">G3 - Cargar Imagen 3</button>
+        <button id="g3-loadImage4">G3 - Cargar Imagen 4</button>
+        <button id="g3-loadImage5">G3 - Cargar Imagen 5</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="g1-imageInput1" accept="image/*" style="display: none">
+  <input type="file" id="g1-imageInput2" accept="image/*" style="display: none">
+  <input type="file" id="g1-imageInput3" accept="image/*" style="display: none">
+  <input type="file" id="g1-imageInput4" accept="image/*" style="display: none">
+  <input type="file" id="g1-imageInput5" accept="image/*" style="display: none">
+  <input type="file" id="g2-imageInput1" accept="image/*" style="display: none">
+  <input type="file" id="g2-imageInput2" accept="image/*" style="display: none">
+  <input type="file" id="g2-imageInput3" accept="image/*" style="display: none">
+  <input type="file" id="g2-imageInput4" accept="image/*" style="display: none">
+  <input type="file" id="g2-imageInput5" accept="image/*" style="display: none">
+  <input type="file" id="g3-imageInput1" accept="image/*" style="display: none">
+  <input type="file" id="g3-imageInput2" accept="image/*" style="display: none">
+  <input type="file" id="g3-imageInput3" accept="image/*" style="display: none">
+  <input type="file" id="g3-imageInput4" accept="image/*" style="display: none">
+  <input type="file" id="g3-imageInput5" accept="image/*" style="display: none">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+<script>const video = document.getElementById('video');
+let lastProcessingTime = 0;
+const PROCESSING_THROTTLE = 1000;
+let cachedVideoPredictions = null;
+const groups = [1, 2, 3].map(groupNum => ({
+  baseImages: Array.from({
+    length: 5
+  }, (_, i) => document.getElementById(`g${groupNum}-baseImage${i + 1}`)),
+  imageContainers: Array.from({
+    length: 5
+  }, (_, i) => document.getElementById(`g${groupNum}-container${i + 1}`)),
+  imageInputs: Array.from({
+    length: 5
+  }, (_, i) => document.getElementById(`g${groupNum}-imageInput${i + 1}`)),
+  similarityDivs: Array.from({
+    length: 5
+  }, (_, i) => document.getElementById(`g${groupNum}-similarity${i + 1}`)),
+  totalSimilarityDiv: document.getElementById(`g${groupNum}-totalSimilarity`)
+}));
+const cameraSelect = document.getElementById('cameraSelect');
+let model;
+let currentStream = null;
+let compareInterval;
+async function loadModel() {
+  try {
+    model = await mobilenet.load({
+      version: 2,
+      alpha: 1.0
+    });
+    console.log('Modelo cargado exitosamente');
+  } catch (error) {
+    console.error('Error al cargar el modelo:', error);
+  }
+  groups.forEach(group => {
+    group.baseImages.forEach(img => {
+      img.onerror = () => {
+        console.error('Error loading image:', img.src);
+        img.src = 'https://via.placeholder.com/300x225';
+      };
+    });
+  });
+}
+loadModel();
+async function listCameras() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+    cameraSelect.innerHTML = '<option value="">Seleccionar cámara...</option>';
+    videoDevices.forEach(device => {
+      const option = document.createElement('option');
+      option.value = device.deviceId;
+      option.text = device.label || `Cámara ${cameraSelect.length}`;
+      cameraSelect.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Error al enumerar dispositivos:', err);
+  }
+}
+function stopCurrentStream() {
+  if (currentStream) {
+    currentStream.getTracks().forEach(track => track.stop());
+    currentStream = null;
+  }
+  if (compareInterval) {
+    clearInterval(compareInterval);
+  }
+}
+async function startCamera(deviceId = '') {
+  stopCurrentStream();
+  const constraints = {
+    video: {
+      width: {
+        ideal: 300
+      },
+      height: {
+        ideal: 225
+      },
+      ...(deviceId && {
+        deviceId: {
+          exact: deviceId
+        }
+      })
+    }
+  };
+  try {
+    currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = currentStream;
+    await video.play();
+    if (!deviceId) {
+      await listCameras();
+    }
+    compareInterval = setInterval(compareImages, 1000);
+  } catch (err) {
+    console.error('Error al acceder a la cámara:', err);
+  }
+}
+document.getElementById('startCamera').addEventListener('click', () => {
+  startCamera(cameraSelect.value);
+});
+cameraSelect.addEventListener('change', () => {
+  if (cameraSelect.value) {
+    startCamera(cameraSelect.value);
+  }
+});
+groups.forEach((group, groupIndex) => {
+  group.baseImages.forEach((_, imageIndex) => {
+    document.getElementById(`g${groupIndex + 1}-loadImage${imageIndex + 1}`).addEventListener('click', () => {
+      group.imageInputs[imageIndex].click();
+    });
+    group.imageInputs[imageIndex].addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            group.baseImages[imageIndex].src = img.src;
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  });
+});
+async function compareImages() {
+  if (!model || !currentStream) return;
+  const now = Date.now();
+  if (now - lastProcessingTime < PROCESSING_THROTTLE) {
+    return;
+  }
+  lastProcessingTime = now;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 300;
+    canvas.height = 225;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, 300, 225);
+    const videoPredictions = await model.classify(canvas, 10);
+    cachedVideoPredictions = videoPredictions;
+    await Promise.all(groups.map(async (group, groupIndex) => {
+      const similarities = await Promise.all(group.baseImages.map(async (baseImage, i) => {
+        if (!baseImage.complete) return 0;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(baseImage, 0, 0, 300, 225);
+        const imagePredictions = await model.classify(canvas, 10);
+        const similarity = comparePredictions(cachedVideoPredictions, imagePredictions);
+        group.similarityDivs[i].textContent = `G${groupIndex + 1} - Similitud ${i + 1}: ${(similarity * 100).toFixed(2)}%`;
+        group.similarityDivs[i].className = `similarity ${similarity > 0.7 ? 'high' : ''}`;
+        group.imageContainers[i].className = `image-container ${similarity > 0.7 ? 'active' : ''}`;
+        return similarity;
+      }));
+      const validSimilarities = similarities.filter(s => !isNaN(s) && s > 0);
+      if (validSimilarities.length > 0) {
+        const totalSimilarity = validSimilarities.reduce((sum, sim) => sum + sim, 0) / validSimilarities.length;
+        group.totalSimilarityDiv.textContent = `Similitud Total Grupo ${groupIndex + 1}: ${(totalSimilarity * 100).toFixed(2)}%`;
+        group.totalSimilarityDiv.className = `group-total-similarity ${totalSimilarity > 0.7 ? 'high' : ''}`;
+      } else {
+        group.totalSimilarityDiv.textContent = `Similitud Total Grupo ${groupIndex + 1}: --`;
+        group.totalSimilarityDiv.className = 'group-total-similarity';
+      }
+    }));
+  } catch (error) {
+    console.error('Error al comparar imágenes:', error);
+  }
+}
+function comparePredictions(pred1, pred2) {
+  const map1 = new Map(pred1.map(p => [p.className, p.probability]));
+  const map2 = new Map(pred2.map(p => [p.className, p.probability]));
+  const topClasses = [...new Set([...map1.keys(), ...map2.keys()].slice(0, 10))];
+  let dotProduct = 0;
+  let norm1 = 0;
+  let norm2 = 0;
+  for (const className of topClasses) {
+    const prob1 = map1.get(className) || 0;
+    const prob2 = map2.get(className) || 0;
+    const weight = prob1 > 0 && prob2 > 0 ? 1.2 : 1;
+    dotProduct += prob1 * prob2 * weight;
+    norm1 += prob1 * prob1;
+    norm2 += prob2 * prob2;
+  }
+  return norm1 && norm2 ? Math.max(0, Math.min(1, dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2)))) : 0;
+}</script>
+
+</body></html>
